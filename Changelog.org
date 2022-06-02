@@ -1,4 +1,16 @@
 * Changelog
+** [2022-06-03] v0.2.0
+
+*** New features
+
+ - Initial RPM spec file (5edd410)
+
+*** Other changes
+
+ - Updated Cargo.lock (30fda32)
+ - Downgraded requirement (02c946a)
+
+
 
 ** [2022-06-03] v0.1.0
 
