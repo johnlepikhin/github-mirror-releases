@@ -23,6 +23,7 @@ struct ReleaseDateRange {
 enum ReleaseFilter {
     AllowAll,
     DateRange(ReleaseDateRange),
+    FixedList(Vec<String>),
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,6 +110,7 @@ impl ReleaseFilter {
 
                 true
             }
+            ReleaseFilter::FixedList(list) => list.contains(&release.tag_name),
         }
     }
 }

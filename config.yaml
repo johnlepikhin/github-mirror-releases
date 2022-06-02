@@ -3,10 +3,23 @@ storage: /tmp/mirror
 
 repositories:
   - path: mailru/shadowplay
+    release_filter: AllowAll
+    asset_filter: AllowAll
+
+  - path: nodejs/node
     release_filter:
       DateRange:
-        min: '2022-04-10T00:00:00Z'
+        min: '2022-01-10T00:00:00Z'
         max: '2022-06-20T00:00:00Z'
     asset_filter:
       FileRegex:
-        pattern: '[.]rpm$'
+        pattern: '[.]tar[.]gz$'
+
+  - path: crev-dev/cargo-crev
+    release_filter:
+      FixedList:
+        - v0.23.2
+        - v0.22.2
+    asset_filter:
+      FileRegex:
+        pattern: '[.]zip$'
