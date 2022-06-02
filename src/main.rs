@@ -60,6 +60,8 @@ struct GithubRelease {
     tag_name: String,
     published_at: chrono::DateTime<chrono::Local>,
     assets: Vec<GithubAsset>,
+    tarball_url: String,
+    zipball_url: String,
 }
 
 #[derive(Parser, Debug)]
@@ -130,7 +132,19 @@ fn list_releases(repository: &str) -> Result<Vec<GithubRelease>> {
     let url = url::Url::parse(&url)?;
 
     let res = http_client.get(url).send()?.text()?;
-    let data = serde_json::de::from_str::<Vec<GithubRelease>>(&res)?;
+
+    let mut data = serde_json::de::from_str::<Vec<GithubRelease>>(&res)?;
+
+    for release in &mut data {
+        release.assets.push(GithubAsset {
+            browser_download_url: release.tarball_url.clone(),
+            name: format!("{}.tar.gz", release.tag_name),
+        });
+        release.assets.push(GithubAsset {
+            browser_download_url: release.zipball_url.clone(),
+            name: format!("{}.zip", release.tag_name),
+        });
+    }
 
     Ok(data)
 }
