@@ -210,7 +210,7 @@ impl Storage {
 impl GithubRelease {
     pub fn mirror(&self, config: &Config, storage: &Storage, repository: &Repository) {
         info!("Processing release {:?}", &self.tag_name);
-        if self.tag_name.contains("/") {
+        if self.tag_name.contains('/') {
             warn!(
                 "Release {:?} contains slash which is prohibited. Skipping.",
                 self.tag_name
@@ -218,7 +218,7 @@ impl GithubRelease {
             return;
         }
 
-        let is_required = repository.release_filter.is_required(&self);
+        let is_required = repository.release_filter.is_required(self);
 
         let release_directory = config
             .storage
@@ -238,7 +238,7 @@ impl GithubRelease {
         }
 
         for asset in &self.assets {
-            let is_required = repository.asset_filter.is_required(&asset);
+            let is_required = repository.asset_filter.is_required(asset);
             if !is_required {
                 info!("Skipping asset {:?} by filter", asset.name);
                 let destination_file_name = release_directory.join(&asset.name);
@@ -252,7 +252,7 @@ impl GithubRelease {
                 continue;
             }
 
-            if let Err(err) = asset.download(&storage, &repository.path, self) {
+            if let Err(err) = asset.download(storage, &repository.path, self) {
                 warn!(
                     "Failed to download {}, skipping: {}",
                     asset.browser_download_url, err
@@ -301,7 +301,7 @@ impl Application {
 
     pub fn run(&self) {
         match self {
-            Application::ListReleases(v) => cmd_list_releases(&v).expect("Releases list"),
+            Application::ListReleases(v) => cmd_list_releases(v).expect("Releases list"),
             Application::Mirror(v) => self.mirror(&v.config_path),
         }
     }
