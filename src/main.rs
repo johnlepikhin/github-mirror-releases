@@ -173,11 +173,14 @@ impl GithubAsset {
         let resp = http_client.get(&self.browser_download_url).send()?;
         let content = resp.text()?;
         std::io::copy(&mut content.as_bytes(), &mut tmpfile)?;
-        tmpfile.as_file().metadata()?.permissions().set_mode(0o644);
 
         std::fs::create_dir_all(&destination_directory)?;
 
-        let _ = tmpfile.persist(destination_file_name)?;
+        let _file = tmpfile.persist(&destination_file_name)?;
+        std::fs::set_permissions(
+            destination_file_name,
+            std::fs::Permissions::from_mode(0o644),
+        )?;
 
         Ok(())
     }
