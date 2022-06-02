@@ -1,0 +1,8 @@
+* Changelog
+
+** [2022-06-03] v0.1.0
+
+*** New features
+
+ - Initial release (78f6149)
+
