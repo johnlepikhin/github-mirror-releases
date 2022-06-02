@@ -1,0 +1,12 @@
+
+storage: /tmp/mirror
+
+repositories:
+  - path: mailru/shadowplay
+    release_filter:
+      DateRange:
+        min: '2022-04-10T00:00:00Z'
+        max: '2022-06-20T00:00:00Z'
+    asset_filter:
+      FileRegex:
+        pattern: '[.]rpm$'
