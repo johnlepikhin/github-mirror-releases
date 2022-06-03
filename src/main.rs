@@ -20,9 +20,18 @@ struct ReleaseDateRange {
 }
 
 #[derive(Debug, Deserialize)]
+struct ReleaseDateWindow {
+    #[serde(with = "humantime_serde")]
+    min_from_now: Option<std::time::Duration>,
+    #[serde(with = "humantime_serde")]
+    max_from_now: Option<std::time::Duration>,
+}
+
+#[derive(Debug, Deserialize)]
 enum ReleaseFilter {
     AllowAll,
     DateRange(ReleaseDateRange),
+    DateWindow(ReleaseDateWindow),
     FixedList(Vec<String>),
 }
 
@@ -104,6 +113,24 @@ impl ReleaseFilter {
                 }
                 if let Some(max) = v.max {
                     if max < release.published_at {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            ReleaseFilter::DateWindow(v) => {
+                if let Some(min) = v.min_from_now {
+                    if chrono::Utc::now() - chrono::Duration::from_std(min).unwrap()
+                        > release.published_at
+                    {
+                        return false;
+                    }
+                }
+                if let Some(max) = v.max_from_now {
+                    if chrono::Utc::now() - chrono::Duration::from_std(max).unwrap()
+                        < release.published_at
+                    {
                         return false;
                     }
                 }
