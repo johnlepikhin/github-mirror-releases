@@ -157,25 +157,40 @@ fn list_releases(repository: &str) -> Result<Vec<GithubRelease>> {
         .user_agent("github-mirror-releases")
         .build()?;
 
+    let mut result_list = Vec::new();
+
     let url = format!("https://api.github.com/repos/{}/releases", repository);
-    let url = url::Url::parse(&url)?;
+    for page in 1..60 {
+        let mut url = url::Url::parse(&url)?;
+        url.query_pairs_mut().append_pair("per_page", "30");
+        url.query_pairs_mut()
+            .append_pair("page", &format!("{}", page));
 
-    let res = http_client.get(url).send()?.text()?;
+        info!("Querying {:?}", &url.to_string());
 
-    let mut data = serde_json::de::from_str::<Vec<GithubRelease>>(&res)?;
+        let res = http_client.get(url).send()?.text()?;
 
-    for release in &mut data {
-        release.assets.push(GithubAsset {
-            browser_download_url: release.tarball_url.clone(),
-            name: format!("{}.tar.gz", release.tag_name),
-        });
-        release.assets.push(GithubAsset {
-            browser_download_url: release.zipball_url.clone(),
-            name: format!("{}.zip", release.tag_name),
-        });
+        let mut data = serde_json::de::from_str::<Vec<GithubRelease>>(&res)?;
+
+        if data.is_empty() {
+            break;
+        }
+
+        for release in &mut data {
+            release.assets.push(GithubAsset {
+                browser_download_url: release.tarball_url.clone(),
+                name: format!("{}.tar.gz", release.tag_name),
+            });
+            release.assets.push(GithubAsset {
+                browser_download_url: release.zipball_url.clone(),
+                name: format!("{}.zip", release.tag_name),
+            });
+        }
+
+        result_list.append(&mut data);
     }
 
-    Ok(data)
+    Ok(result_list)
 }
 
 fn cmd_list_releases(args: &CmdListReleases) -> Result<()> {
