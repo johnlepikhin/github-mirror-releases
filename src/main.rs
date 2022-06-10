@@ -329,6 +329,12 @@ impl Application {
         let config = Config::read(config_path).expect("Config");
         let storage = Storage::init(&config.storage).expect("Storage");
 
+        for repo in &config.repositories {
+            repo.mirror(&config, &storage)
+        }
+    }
+
+    pub fn run(&self) {
         let logger = slog_syslog::SyslogBuilder::new()
             .facility(slog_syslog::Facility::LOG_USER)
             .level(slog::Level::Info)
@@ -339,12 +345,6 @@ impl Application {
         let logger = slog::Logger::root(logger.fuse(), o!());
         let _logger_guard = slog_scope::set_global_logger(logger);
 
-        for repo in &config.repositories {
-            repo.mirror(&config, &storage)
-        }
-    }
-
-    pub fn run(&self) {
         match self {
             Application::ListReleases(v) => cmd_list_releases(v).expect("Releases list"),
             Application::Mirror(v) => self.mirror(&v.config_path),
