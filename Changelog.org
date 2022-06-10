@@ -1,4 +1,13 @@
 * Changelog
+** [2022-06-10] v0.4.2
+
+*** Bugfixes
+
+ - List up to 30*60=1800 releases (33d0cf3)
+ - Increased timeout for release downloader (d8caaee)
+ - Enabled logger for list-releases subcommand (8ebbde6)
+
+
 ** [2022-06-10] v0.4.1
 
 *** Bugfixes
