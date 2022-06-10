@@ -1,4 +1,11 @@
 * Changelog
+** [2022-06-10] v0.4.1
+
+*** Bugfixes
+
+ - Do not decode body (b9c2c8b)
+
+
 ** [2022-06-03] v0.4.0
 
 *** New features
