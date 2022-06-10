@@ -208,7 +208,7 @@ impl GithubAsset {
         }
 
         let http_client = reqwest::blocking::ClientBuilder::new()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_secs(60))
             .user_agent("github-mirror-releases")
             .build()?;
 
