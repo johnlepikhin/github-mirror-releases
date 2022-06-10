@@ -213,9 +213,8 @@ impl GithubAsset {
             .build()?;
 
         let mut tmpfile = tempfile::NamedTempFile::new_in(&storage.path)?;
-        let resp = http_client.get(&self.browser_download_url).send()?;
-        let content = resp.text()?;
-        std::io::copy(&mut content.as_bytes(), &mut tmpfile)?;
+        let mut resp = http_client.get(&self.browser_download_url).send()?;
+        let _ = resp.copy_to(&mut tmpfile)?;
 
         std::fs::create_dir_all(&destination_directory)?;
 
