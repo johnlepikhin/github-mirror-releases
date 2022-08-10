@@ -1,4 +1,11 @@
 * Changelog
+** [2022-08-10] v0.5.2
+
+*** Bugfixes
+
+ - Removed extra debug (f494941)
+
+
 ** [2022-08-10] v0.5.1
 
 *** Bugfixes
