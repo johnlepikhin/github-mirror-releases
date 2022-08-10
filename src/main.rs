@@ -246,8 +246,6 @@ fn list_tags(repository: &str) -> Result<Vec<GithubRelease>> {
         std::thread::sleep(std::time::Duration::from_secs_f32(0.5));
         let res = http_client.get(url).send()?.text()?;
 
-        info!("Response body {:?}", &res);
-
         let mut data = serde_json::de::from_str::<Vec<GithubTag>>(&res)?;
 
         if data.is_empty() {
