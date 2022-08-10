@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 use slog::{o, Drain};
 use std::os::unix::prelude::PermissionsExt;
 
+fn default_false() -> bool {
+    false
+}
+
 #[derive(Debug, Deserialize)]
 struct AssetFileRegex {
     #[serde(with = "serde_regex")]
@@ -28,11 +32,18 @@ struct ReleaseDateWindow {
 }
 
 #[derive(Debug, Deserialize)]
+struct ReleaseRegex {
+    #[serde(with = "serde_regex")]
+    pattern: regex::Regex,
+}
+
+#[derive(Debug, Deserialize)]
 enum ReleaseFilter {
     AllowAll,
     DateRange(ReleaseDateRange),
     DateWindow(ReleaseDateWindow),
     FixedList(Vec<String>),
+    Regex(ReleaseRegex),
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,6 +57,8 @@ struct Repository {
     path: String,
     release_filter: ReleaseFilter,
     asset_filter: AssetFilter,
+    #[serde(default = "default_false")]
+    include_tags: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,9 +87,25 @@ struct GithubRelease {
     zipball_url: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct GithubTagCommit {
+    sha: String,
+    url: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct GithubTag {
+    name: String,
+    commit: GithubTagCommit,
+    tarball_url: String,
+    zipball_url: String,
+}
+
 #[derive(Parser, Debug)]
 struct CmdListReleases {
     repository: String,
+    #[clap(long)]
+    include_tags: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -138,6 +167,7 @@ impl ReleaseFilter {
                 true
             }
             ReleaseFilter::FixedList(list) => list.contains(&release.tag_name),
+            ReleaseFilter::Regex(regex) => regex.pattern.is_match(&release.tag_name),
         }
     }
 }
@@ -168,7 +198,10 @@ fn list_releases(repository: &str) -> Result<Vec<GithubRelease>> {
 
         info!("Querying {:?}", &url.to_string());
 
+        std::thread::sleep(std::time::Duration::from_secs_f32(0.5));
         let res = http_client.get(url).send()?.text()?;
+
+        info!("Response body {:?}", &res);
 
         let mut data = serde_json::de::from_str::<Vec<GithubRelease>>(&res)?;
 
@@ -193,11 +226,70 @@ fn list_releases(repository: &str) -> Result<Vec<GithubRelease>> {
     Ok(result_list)
 }
 
+fn list_tags(repository: &str) -> Result<Vec<GithubRelease>> {
+    let http_client = reqwest::blocking::ClientBuilder::new()
+        .timeout(std::time::Duration::from_secs(30))
+        .user_agent("github-mirror-releases")
+        .build()?;
+
+    let mut result_list = Vec::new();
+
+    let url = format!("https://api.github.com/repos/{}/tags", repository);
+    for page in 1..60 {
+        let mut url = url::Url::parse(&url)?;
+        url.query_pairs_mut().append_pair("per_page", "30");
+        url.query_pairs_mut()
+            .append_pair("page", &format!("{}", page));
+
+        info!("Querying {:?}", &url.to_string());
+
+        std::thread::sleep(std::time::Duration::from_secs_f32(0.5));
+        let res = http_client.get(url).send()?.text()?;
+
+        info!("Response body {:?}", &res);
+
+        let mut data = serde_json::de::from_str::<Vec<GithubTag>>(&res)?;
+
+        if data.is_empty() {
+            break;
+        }
+
+        for tag in &mut data {
+            let tag_name = format!("tag_{}", tag.name);
+            let release = GithubRelease {
+                tag_name: tag_name.clone(),
+                published_at: chrono::Local::now(),
+                assets: vec![
+                    GithubAsset {
+                        browser_download_url: tag.tarball_url.clone(),
+                        name: format!("{}.tar.gz", tag_name),
+                    },
+                    GithubAsset {
+                        browser_download_url: tag.zipball_url.clone(),
+                        name: format!("{}.zip", tag_name),
+                    },
+                ],
+                tarball_url: tag.tarball_url.clone(),
+                zipball_url: tag.zipball_url.clone(),
+            };
+            result_list.push(release)
+        }
+    }
+
+    Ok(result_list)
+}
+
+fn list_agregated_releases(repository: &str, include_tags: bool) -> Result<Vec<GithubRelease>> {
+    let mut releases = list_releases(repository)?;
+    if include_tags {
+        releases.append(&mut list_tags(repository)?);
+    }
+    Ok(releases)
+}
+
 fn cmd_list_releases(args: &CmdListReleases) -> Result<()> {
-    println!(
-        "{}",
-        serde_json::to_string(&list_releases(&args.repository)?).unwrap()
-    );
+    let releases = list_agregated_releases(&args.repository, args.include_tags)?;
+    println!("{}", serde_json::to_string(&releases).unwrap());
 
     Ok(())
 }
@@ -325,7 +417,7 @@ impl GithubRelease {
 impl Repository {
     pub fn mirror(&self, config: &Config, storage: &Storage) {
         info!("Processing repository {:?}", &self.path);
-        let releases = match list_releases(&self.path) {
+        let releases = match list_agregated_releases(&self.path, self.include_tags) {
             Ok(v) => v,
             Err(err) => {
                 crit!("Failed to get releases list for {}: {}", self.path, err);

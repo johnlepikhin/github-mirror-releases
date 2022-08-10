@@ -32,3 +32,11 @@ repositories:
     asset_filter:
       FileRegex:
         pattern: '_amd64[.]deb$'
+  - path: golang/go
+    release_filter:
+      Regex:
+        pattern: ^tag_go1[.]\d+([.]\d+)?$
+    asset_filter:
+      FileRegex:
+        pattern: 'tar[.]gz$'
+    include_tags: true
